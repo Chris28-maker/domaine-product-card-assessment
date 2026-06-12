@@ -1,0 +1,338 @@
+{% assign card_product = section.settings.product %}
+
+<section class="w-full px-4 py-8">
+  <div class="mx-auto max-w-[360px]">
+    {% if card_product != blank %}
+      {% assign selected_variant = card_product.selected_or_first_available_variant %}
+
+      {% assign color_position = 1 %}
+      {% for option in card_product.options_with_values %}
+        {% assign option_name = option.name | downcase %}
+        {% if option_name contains 'color' or option_name contains 'colour' %}
+          {% assign color_position = forloop.index %}
+        {% endif %}
+      {% endfor %}
+
+      {% assign active_color = '' %}
+      {% case color_position %}
+        {% when 1 %}
+          {% assign active_color = selected_variant.option1 %}
+        {% when 2 %}
+          {% assign active_color = selected_variant.option2 %}
+        {% when 3 %}
+          {% assign active_color = selected_variant.option3 %}
+      {% endcase %}
+
+      {% assign main_image = selected_variant.featured_media.preview_image | default: card_product.featured_image %}
+      {% assign hover_image = blank %}
+      {% assign active_color_downcase = active_color | downcase %}
+
+      {% for media in card_product.media %}
+        {% assign media_alt = media.alt | downcase %}
+        {% if media.media_type == 'image' and media_alt contains active_color_downcase and media_alt contains 'side' %}
+          {% assign hover_image = media.preview_image %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+
+      {% if hover_image == blank %}
+        {% for media in card_product.media %}
+          {% assign media_alt = media.alt | downcase %}
+          {% if media.media_type == 'image' and media_alt contains active_color_downcase and media_alt contains 'hover' %}
+            {% assign hover_image = media.preview_image %}
+            {% break %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if hover_image == blank %}
+        {% assign hover_image = main_image %}
+      {% endif %}
+
+      {% assign is_on_sale = false %}
+      {% if selected_variant.compare_at_price > selected_variant.price %}
+        {% assign is_on_sale = true %}
+      {% endif %}
+
+      <article
+        id="DomaineCard-{{ section.id }}"
+        class="rounded-sm bg-[#f5f5f3] p-6"
+      >
+        <a
+          href="{{ card_product.url }}?variant={{ selected_variant.id }}"
+          class="dp-card-link block"
+          aria-label="{{ card_product.title | escape }}"
+        >
+          <div class="relative overflow-hidden rounded-[12px] border border-[#dddddd] bg-[#f5f5f3] aspect-[1/1.08]">
+            {% if is_on_sale %}
+              <div class="dp-sale-badge absolute left-[18px] top-[18px] z-20 inline-flex items-center rounded-full border border-[#ff3b30] bg-white px-[16px] py-[6px] text-[14px] leading-none text-[#ff3b30]">
+                On Sale!
+              </div>
+            {% else %}
+              <div class="dp-sale-badge hidden absolute left-[18px] top-[18px] z-20 inline-flex items-center rounded-full border border-[#ff3b30] bg-white px-[16px] py-[6px] text-[14px] leading-none text-[#ff3b30]">
+                On Sale!
+              </div>
+            {% endif %}
+
+            {% if main_image != blank %}
+              <img
+                class="dp-main-image absolute inset-0 h-full w-full object-contain p-6 transition-opacity duration-300 group-hover:opacity-0"
+                src="{{ main_image | image_url: width: 1200 }}"
+                alt="{{ card_product.title | escape }}"
+                width="1200"
+                height="1200"
+                loading="lazy"
+              >
+            {% endif %}
+
+            {% if hover_image != blank %}
+              <img
+                class="dp-hover-image absolute inset-0 h-full w-full object-contain p-6 opacity-0 transition-opacity duration-300 hover:opacity-100"
+                src="{{ hover_image | image_url: width: 1200 }}"
+                alt="{{ card_product.title | escape }} hover image"
+                width="1200"
+                height="1200"
+                loading="lazy"
+              >
+            {% endif %}
+
+            <div class="absolute inset-0 z-10 opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
+          </div>
+        </a>
+
+        {% if card_product.variants.size > 1 %}
+          <div class="mt-5 flex flex-wrap gap-[10px] dp-swatches">
+            {% assign rendered_colors = '' %}
+
+            {% for variant in card_product.variants %}
+              {% assign variant_color = '' %}
+
+              {% case color_position %}
+                {% when 1 %}
+                  {% assign variant_color = variant.option1 %}
+                {% when 2 %}
+                  {% assign variant_color = variant.option2 %}
+                {% when 3 %}
+                  {% assign variant_color = variant.option3 %}
+              {% endcase %}
+
+              {% assign color_token = variant_color | downcase | append: '|' %}
+
+              {% unless rendered_colors contains color_token %}
+                {% assign rendered_colors = rendered_colors | append: color_token %}
+
+                {% assign variant_main = variant.featured_media.preview_image | default: card_product.featured_image %}
+                {% assign variant_hover = blank %}
+                {% assign variant_color_downcase = variant_color | downcase %}
+
+                {% for media in card_product.media %}
+                  {% assign media_alt = media.alt | downcase %}
+                  {% if media.media_type == 'image' and media_alt contains variant_color_downcase and media_alt contains 'side' %}
+                    {% assign variant_hover = media.preview_image %}
+                    {% break %}
+                  {% endif %}
+                {% endfor %}
+
+                {% if variant_hover == blank %}
+                  {% for media in card_product.media %}
+                    {% assign media_alt = media.alt | downcase %}
+                    {% if media.media_type == 'image' and media_alt contains variant_color_downcase and media_alt contains 'hover' %}
+                      {% assign variant_hover = media.preview_image %}
+                      {% break %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+
+                {% if variant_hover == blank %}
+                  {% assign variant_hover = variant_main %}
+                {% endif %}
+
+                {% assign variant_sale = false %}
+                {% if variant.compare_at_price > variant.price %}
+                  {% assign variant_sale = true %}
+                {% endif %}
+
+                <button
+                  type="button"
+                  class="dp-swatch relative h-[20px] w-[20px] rounded-full border border-white shadow-sm transition {% if variant.id == selected_variant.id %}ring-2 ring-[#2b6df8] ring-offset-1{% endif %}"
+                  aria-label="Choose {{ variant_color | escape }}"
+                  title="{{ variant_color | escape }}"
+                  data-variant-id="{{ variant.id }}"
+                  data-color="{{ variant_color | escape }}"
+                  data-price="{{ variant.price }}"
+                  data-compare-price="{{ variant.compare_at_price | default: 0 }}"
+                  data-sale="{{ variant_sale }}"
+                  data-image="{% if variant_main != blank %}{{ variant_main | image_url: width: 1200 }}{% endif %}"
+                  data-hover-image="{% if variant_hover != blank %}{{ variant_hover | image_url: width: 1200 }}{% endif %}"
+                  data-product-url="{{ card_product.url }}"
+                >
+                  <span class="sr-only">{{ variant_color }}</span>
+                </button>
+              {% endunless %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mt-4">
+          {% if card_product.vendor != blank %}
+            <p class="text-[14px] leading-[1.3] text-[#2e2e2e]">
+              {{ card_product.vendor }}
+            </p>
+          {% endif %}
+
+          <h3 class="mt-1 text-[16px] font-semibold leading-[1.35]">
+            <a
+              href="{{ card_product.url }}?variant={{ selected_variant.id }}"
+              class="dp-title-link text-[#0d5ea8] hover:underline"
+            >
+              {{ card_product.title }}
+            </a>
+          </h3>
+
+          <div class="mt-2 flex items-center gap-2">
+            <span class="dp-compare-price {% if is_on_sale %}inline{% else %}hidden{% endif %} text-[14px] text-black line-through">
+              {{ selected_variant.compare_at_price | money }}
+            </span>
+
+            <span class="dp-price text-[20px] leading-none text-[#ff3b30] {% unless is_on_sale %}text-black{% endunless %}">
+              {{ selected_variant.price | money }}
+            </span>
+          </div>
+        </div>
+      </article>
+
+      <script>
+        (() => {
+          const root = document.getElementById('DomaineCard-{{ section.id }}');
+          if (!root) return;
+
+          const swatches = root.querySelectorAll('.dp-swatch');
+          const mainImage = root.querySelector('.dp-main-image');
+          const hoverImage = root.querySelector('.dp-hover-image');
+          const priceEl = root.querySelector('.dp-price');
+          const comparePriceEl = root.querySelector('.dp-compare-price');
+          const saleBadge = root.querySelector('.dp-sale-badge');
+          const links = root.querySelectorAll('.dp-card-link, .dp-title-link');
+
+          const currency = '{{ cart.currency.iso_code | default: shop.currency }}';
+
+          function formatMoney(cents) {
+            const value = Number(cents || 0) / 100;
+            try {
+              return new Intl.NumberFormat(undefined, {
+                style: 'currency',
+                currency
+              }).format(value);
+            } catch (e) {
+              return value.toFixed(2);
+            }
+          }
+
+          function getColorValue(name) {
+            const color = String(name || '').toLowerCase().trim();
+
+            const map = {
+              orange: '#ff6a2f',
+              green: '#148c2f',
+              blue: '#006da8',
+              yellow: '#ecd46a',
+              pink: '#e5b2e8',
+              navy: '#1d2f63',
+              black: '#111111',
+              white: '#ffffff',
+              red: '#e3342f',
+              purple: '#7e57c2',
+              grey: '#8d8d8d',
+              gray: '#8d8d8d'
+            };
+
+            return map[color] || color;
+          }
+
+          swatches.forEach((swatch) => {
+            const color = swatch.dataset.color;
+            swatch.style.backgroundColor = getColorValue(color);
+
+            if (String(color).toLowerCase() === 'white') {
+              swatch.style.border = '1px solid #cfcfcf';
+            }
+
+            swatch.addEventListener('click', () => {
+              const variantId = swatch.dataset.variantId;
+              const image = swatch.dataset.image;
+              const hover = swatch.dataset.hoverImage;
+              const price = swatch.dataset.price;
+              const comparePrice = Number(swatch.dataset.comparePrice || 0);
+              const isSale = swatch.dataset.sale === 'true';
+              const productUrl = swatch.dataset.productUrl;
+
+              if (mainImage && image) mainImage.src = image;
+              if (hoverImage && hover) hoverImage.src = hover;
+
+              if (priceEl) {
+                priceEl.textContent = formatMoney(price);
+                priceEl.classList.toggle('text-[#ff3b30]', isSale);
+                priceEl.classList.toggle('text-black', !isSale);
+              }
+
+              if (comparePriceEl) {
+                comparePriceEl.textContent = formatMoney(comparePrice);
+                comparePriceEl.classList.toggle('hidden', !isSale);
+                comparePriceEl.classList.toggle('inline', isSale);
+              }
+
+              if (saleBadge) {
+                saleBadge.classList.toggle('hidden', !isSale);
+              }
+
+              links.forEach((link) => {
+                link.href = `${productUrl}?variant=${variantId}`;
+              });
+
+              swatches.forEach((btn) => {
+                btn.classList.remove('ring-2', 'ring-[#2b6df8]', 'ring-offset-1');
+              });
+
+              swatch.classList.add('ring-2', 'ring-[#2b6df8]', 'ring-offset-1');
+            });
+          });
+
+          const imageWrap = root.querySelector('.relative.overflow-hidden');
+          if (imageWrap && mainImage && hoverImage) {
+            imageWrap.addEventListener('mouseenter', () => {
+              mainImage.style.opacity = '0';
+              hoverImage.style.opacity = '1';
+            });
+
+            imageWrap.addEventListener('mouseleave', () => {
+              mainImage.style.opacity = '1';
+              hoverImage.style.opacity = '0';
+            });
+          }
+        })();
+      </script>
+    {% else %}
+      <div class="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+        Select a product in the theme editor.
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Domaine Product Card",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Domaine Product Card"
+    }
+  ]
+}
+{% endschema %}
